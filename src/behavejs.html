@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <script type="text/javascript" src="dependencies/jquery.js"></script>
+    <script type="text/javascript" src="behave.js"></script>
+    <title></title>
+</head>
+<script>
+
+    // Declare a new view-model. The model will be tied to the element with the corresponding data-view-model attr.
+    Behave.view('foo')
+        // By listening to a certain channel, view-models can receive data anonymously.
+            .listens('bar')
+        // The view-model creator can specify what data it expects to receive, for better collaborating.
+            .expects({
+                text: "string",
+                input: "string",
+                counter: "number"
+            })
+        // View-models can use extensions (such as behave.router, which comes with behave-boilerplate)
+            .uses(function($if) {
+                console.log("data has arrived!");
+            })
+        // After defining the model itself, we define the different components.
+        // Components will be tied to the elements with the corresponding data-component attr.
+        // Component names CAN be reused within different view-models.
+        // The this object used when defining components refers to the element which holds the "data-component" attr,
+        // wrapped with a jQuery object.
+            .component('text', function($if) {
+
+                // $if is a BehaveStream object. It has its own conditionals for fail-proofing logic.
+                $if.has('text').then(function() {
+                   this.text($if.get('text'));
+                });
+
+                // The return statement appends data to the output stream (which returns at the end of every
+                // .stream(*) call). Streams which go through the view-model trigger all components by order of
+                // definition.
+                $if.return({text: this.text()});
+
+            })
+            .component('input', function($if) {
+
+                $if.has('input').then(function() {
+
+                    this.val($if.get('input'));
+
+                });
+
+                $if.return({input: this.val()});
+
+            })
+            .component('timer', function($if) {
+
+                $if.has('counter').then(function() {
+
+                    this.text($if.get('counter'));
+
+                });
+
+            });
+
+    // In order to demonstrate broadcasting, we register an interval which broadcasts data to all view-models
+    // which listen to the 'bar' channel.
+    var cnt = 0;
+    setInterval(
+            function(){
+                cnt++;
+                $b('bar').stream({counter: cnt})
+            },
+            1000
+    );
+
+</script>
+<body>
+
+<div data-view-model="foo">
+    <input type="text" data-component="input" oninput="$c('text').stream({text: $c('input').stream().input})"/>
+    <div data-component="text"></div>
+    <div data-component="timer"></div>
+    <div onclick="">CLICK HERE</div>
+</div>
+
+</body>
+</html>
