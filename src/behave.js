@@ -188,7 +188,7 @@ var Behave = new (function() {
 
         /**
          * Pipes a stream through current component
-         * @param stream {BehaveStream || Object}
+         * @param stream {BehaveStream|Object}
          */
         this.stream = function(stream) {
 
@@ -430,6 +430,31 @@ var Behave = new (function() {
     };
 
     /**
+     * In certain browsers (e.g. gecko) the current event is not being reported to window.event, which then
+     * makes the component selector fail.
+     * This is a polyfill meant to work around that.
+     */
+    var eventScopePolyfill = function() {
+
+        // If browser supports window.event, there's no need to use this.
+        if (window.hasOwnProperty("event"))
+            return;
+
+        // Capture event on window level before bubbling it from element, so it is registered first.
+        for (var prop in window) {
+            if (window.hasOwnProperty(prop) && prop.substr(0,2) == "on")
+                window.addEventListener(
+                    prop.substr(2),
+                    function(e) {
+                        window.event = e;
+                    },
+                    true
+                );
+        }
+
+    };
+
+    /**
      * The global view model selector.
      * @see this.views
      * @type {Function}
@@ -477,6 +502,8 @@ var Behave = new (function() {
      */
     window[BEHAVE_SELECTORS[2]] = function(chName) {
         return new BehaveChannel(chName);
-    }
+    };
+
+    eventScopePolyfill();
 
 })();
